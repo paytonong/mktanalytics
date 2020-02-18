@@ -16,7 +16,7 @@ def rv_cc_estimator(sample,n=22):
 	return 100 * np.sqrt(ann_log_returns.rolling(window=n,min_periods=n).sum())
 
 
- def cc_estimator(sample,n=22,days=1):
+def cc_estimator(sample,n=22,days=1):
 	combined_rv = pd.Series()
 	sample_clean = sample.dropna()
 	for i in range(days):
@@ -82,9 +82,9 @@ def generate_returns_dict(prices, undl_list, return_days):
 	returns = {}
 	for u in undl_list:
 		returns[u] = pd.DataFrame()
-	for i in return_days:
-		close_prices = prices[u, 'PX_LAST'].dropna()
-		returns[u][i] = (close_prices / close_prices.shift(i) - 1) * 100
+		for i in return_days:
+			close_prices = prices[u, 'Close'].dropna()
+			returns[u][i] = (close_prices / close_prices.shift(i) - 1) * 100
 	return returns
 
 

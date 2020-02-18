@@ -16,6 +16,19 @@ def rv_cc_estimator(sample,n=22):
 	return 100 * np.sqrt(ann_log_returns.rolling(window=n,min_periods=n).sum())
 
 
+ def cc_estimator(sample,n=22,days=1):
+	combined_rv = pd.Series()
+	sample_clean = sample.dropna()
+	for i in range(days):
+		staggered_samples = sample_clean[i::days]
+		returns = np.divide(staggered_samples, staggered_samples.shift(1))
+		log_returns = np.log(returns)
+		ann_log_returns = 252*np.power(log_returns,2)/n/days
+		sample_rv = 100 * np.sqrt(ann_log_returns.rolling(window=n,min_periods=n).sum())
+		combined_rv = pd.concat([combined_rv, sample_rv])
+	return combined_rv.sort_index()
+
+
 def calc_period_var(sample, return_period=22, lookback=66):
 	"""
 	A period return's move normalized. Calculated as the squared move (variance) scaled by the period
@@ -92,6 +105,12 @@ def rolling_trend(prices, undl_list, return_days, smoothing=5):
 
 
 def spot_stats(sample, n=260):
+	"""
+	Simple spot statistics returning the distance in % terms from the last spot to the max spot in the period, distance to min spot, and current percentile in min to max.
+
+	sample: series or dataframe of closing prices
+	n: historical lookback period.
+	"""
 	spot_window = sample.dropna()[-n:]
 	percentile = percentileofscore(spot_window, spot_window[-1])
 	high = spot_window.max()

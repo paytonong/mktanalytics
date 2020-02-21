@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import norm, percentileofscore
+from tqdm import tqdm
 
 def rv_cc_estimator(sample,n=22):
 	"""
@@ -10,7 +11,7 @@ def rv_cc_estimator(sample,n=22):
 	n: sample size period for the volatility
 	"""
 	sample_clean = sample.dropna()
-	returns = np.divide(sample_clean[1:],sample_clean[:-1])
+	returns = np.divide(sample_clean, sample_clean.shift(1))
 	log_returns = np.log(returns)
 	ann_log_returns = 252*np.power(log_returns,2)/n
 	return 100 * np.sqrt(ann_log_returns.rolling(window=n,min_periods=n).sum())

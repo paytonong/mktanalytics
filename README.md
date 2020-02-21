@@ -27,3 +27,5 @@ pip install mktanalytics
 ## Dependencies
 - [NumPy](https://www.numpy.org)
 - [pandas](https://www.pandas.pydata.org)
+- [yfinance]
+- [tqdm]

@@ -39,8 +39,19 @@ def get_rv_historical(data, undl_list, periods = [5, 10, 22]):
 	for u in tqdm(undl_list):
 		rv_df = pd.DataFrame()
 		for period in periods:
-			rv_df[period] = ma.rv_cc_estimator(data[u]['Close'], n=period).dropna()
-		rv_df['average'] = rv_df.mean(axis=1)
+			rv_df['{}D RV'.format(period)] = ma.rv_cc_estimator(data[u]['Close'], n=period, days=1).dropna()
+		rv_df['Average RV'] = rv_df.mean(axis=1)
+		rv_dict[u] = rv_df
+	return rv_dict
+
+
+def get_rv_vol(data, undl_list, periods = [5, 10, 22]):
+	rv_dict = {}
+	for u in tqdm(undl_list):
+		rv_df = pd.DataFrame()
+		for period in periods:
+			rv_df['{}D RV'.format(period)] = ma.cc_estimator(data[u]['Close'], n=period, days=1).dropna()
+		rv_df['Average RV'] = rv_df.mean(axis=1)
 		rv_dict[u] = rv_df
 	return rv_dict
 
@@ -54,8 +65,8 @@ def get_rv_latest(data, undl_list, periods = [5, 10, 22]):
 			continue
 		rv_df = pd.DataFrame()
 		for period in periods:
-			rv_df[period] = ma.rv_cc_estimator(latest_data, n=period).dropna()
-		rv_df['average'] = rv_df.mean(axis=1)
+			rv_df['{}D RV'.format(period)] = ma.rv_cc_estimator(latest_data, n=period).dropna()
+		rv_df['Average RV'] = rv_df.mean(axis=1)
 		rv_dict[u] = rv_df.iloc[-1]
 	return rv_dict
 
@@ -89,5 +100,5 @@ def get_earnings_date(earnings_df, undl):
 		earnings_data = earnings_df.loc[undl]
 		if type(earnings_data) is pd.DataFrame:
 			earnings_data = earnings_data.iloc[0]
-		return pd.Timestamp(earnings_data['startdatetime']).dt.tz_localize(None)
+		return pd.Timestamp(earnings_data['startdatetime']).tz_localize(None)
 	return np.nan

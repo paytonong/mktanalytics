@@ -3,14 +3,19 @@ import pandas as pd
 import yfinance as yf
 from yahoo_earnings_calendar import YahooEarningsCalendar
 import mktanalytics as ma
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 def nearest(items, pivot):
 	return min(items, key=lambda x: abs(x - pivot))
 
-def get_atm_vol(undl_list, weeks=1):
+def get_atm_vol(undl_list, weeks=1, calc_strangle=False, target_price=1):
 	atm_dict = {}
 	date_dict = {}
+	volume_dict = {}
+	no_options_list = []
+	if calc_strangle:
+		target_put = {}
+		target_call = {}
 	for u in tqdm(undl_list):
 		try:
 			ticker = yf.Ticker(u)
@@ -23,9 +28,43 @@ def get_atm_vol(undl_list, weeks=1):
 			call_atm = options.calls[-options.calls['inTheMoney']]['impliedVolatility'].iloc[0]
 			atm_dict[u] = (put_atm + call_atm) / 2 * 100
 			date_dict[u] = closest_expiry
-		except:
+			volume_dict[u] = options.puts['volume'].sum() + options.calls['volume'].sum()
+
+			if calc_strangle:
+				spot_price = ticker.history()['Close'][-1]
+				target_put[u], target_call[u] = get_target_strangle(options, spot_price, target_price)
+		except IndexError:
+			no_options_list.append(u)
+	if len(no_options_list) > 0:
+		for u in no_options_list:
 			print('No options for {}'.format(u))
-	return atm_dict, date_dict
+	if calc_strangle:
+		return atm_dict, date_dict, volume_dict, target_put, target_call
+	return atm_dict, date_dict, volume_dict
+
+
+def get_target_strangle(options, spot_price, target_price, steps=10):
+	puts = options.puts[-options.puts['inTheMoney']].copy()
+	calls = options.calls[-options.calls['inTheMoney']].copy()
+	strangle_prices = []
+	option_list = [len(puts), len(calls), steps]
+	steps = np.min(option_list)
+	for i in range(steps):
+		put = puts.iloc[-(i+1)]
+		call = calls.iloc[i]
+		put_price = put['lastPrice']
+		call_price = call['lastPrice']
+		strangle_price = put_price + call_price
+		strangle_price_pct = (strangle_price / spot_price) * 100
+		strangle_prices.append(strangle_price_pct)
+	idx = min(range(len(strangle_prices)), key=lambda i: abs(strangle_prices[i] - 1))
+	target_put = puts.iloc[-(idx+1)].copy()
+	target_call = calls.iloc[idx].copy()
+	target_call['strike_otm_pct'] = (target_call['strike'] / spot_price - target_price) * 100
+	target_put['strike_otm_pct'] = (1 - target_put['strike'] / spot_price) * 100
+	target_call['price_pct'] = target_call['lastPrice'] / spot_price * 100
+	target_put['price_pct'] = target_put['lastPrice'] / spot_price * 100
+	return target_put, target_call
 
 
 def get_historical_data(ticker_list, period='1y'):

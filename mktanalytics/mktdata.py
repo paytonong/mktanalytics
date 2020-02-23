@@ -52,15 +52,15 @@ def get_target_strangle(options, spot_price, target_price, steps=10):
 	for i in range(steps):
 		put = puts.iloc[-(i+1)]
 		call = calls.iloc[i]
-		put_price = put['lastPrice']
-		call_price = call['lastPrice']
+		put_price = (put['bid'] + put['ask']) / 2
+		call_price = (call['bid'] + put['ask']) / 2
 		strangle_price = put_price + call_price
 		strangle_price_pct = (strangle_price / spot_price) * 100
 		strangle_prices.append(strangle_price_pct)
-	idx = min(range(len(strangle_prices)), key=lambda i: abs(strangle_prices[i] - 1))
+	idx = min(range(len(strangle_prices)), key=lambda i: abs(strangle_prices[i] - target_price))
 	target_put = puts.iloc[-(idx+1)].copy()
 	target_call = calls.iloc[idx].copy()
-	target_call['strike_otm_pct'] = (target_call['strike'] / spot_price - target_price) * 100
+	target_call['strike_otm_pct'] = (target_call['strike'] / spot_price - 1) * 100
 	target_put['strike_otm_pct'] = (1 - target_put['strike'] / spot_price) * 100
 	target_call['price_pct'] = (target_call['bid'] + target_call['ask']) / 2 / spot_price * 100
 	target_put['price_pct'] = (target_put['bid'] + target_put['ask']) / 2 / spot_price * 100

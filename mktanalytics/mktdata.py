@@ -62,8 +62,8 @@ def get_target_strangle(options, spot_price, target_price, steps=10):
 	target_call = calls.iloc[idx].copy()
 	target_call['strike_otm_pct'] = (target_call['strike'] / spot_price - target_price) * 100
 	target_put['strike_otm_pct'] = (1 - target_put['strike'] / spot_price) * 100
-	target_call['price_pct'] = target_call['lastPrice'] / spot_price * 100
-	target_put['price_pct'] = target_put['lastPrice'] / spot_price * 100
+	target_call['price_pct'] = (target_call['bid'] + target_call['ask']) / 2 / spot_price * 100
+	target_put['price_pct'] = (target_put['bid'] + target_put['ask']) / 2 / spot_price * 100
 	return target_put, target_call
 
 

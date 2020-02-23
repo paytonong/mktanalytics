@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import norm, percentileofscore
-from tqdm import tqdm
+from tqdm.notebook import tqdm
 
 def rv_cc_estimator(sample,n=22):
 	"""
@@ -97,10 +97,10 @@ def rolling_trend(prices, undl_list, return_days, smoothing=5):
 	for u in undl_list:
 		avg_returns_dict[u] = pd.DataFrame()
 		for i in return_days:
-			avg_returns_dict[u][i] = returns_dict[u][i].dropna().rolling(smoothing).mean() / np.sqrt(i)
-		avg_returns_dict[u]['Average'] = avg_returns_dict[u].dropna().mean(axis=1)
+			avg_returns_dict[u]['{}D Trend'.format(i)] = returns_dict[u][i].dropna().rolling(smoothing).mean() / np.sqrt(i)
+		avg_returns_dict[u]['Average Trend'] = avg_returns_dict[u].dropna().mean(axis=1)
 		if len(avg_returns_dict[u].dropna()) > 0:
-			returns_summary[u] = avg_returns_dict[u]['Average'].dropna()[-1]
+			returns_summary[u] = avg_returns_dict[u]['Average Trend'].dropna()[-1]
 	returns_summary = pd.Series(returns_summary)
 	return returns_summary, avg_returns_dict
 
@@ -121,11 +121,20 @@ def spot_stats(sample, n=260):
 	return max_pct, min_pct, percentile
 
 
-def past_spot_ranges(sample, n=22):
+def past_spot_ranges(sample, n=22, haircut=0.2, intraday=True):
 	'''Finds Returns the past n spot range based on max/min of the period'''
-	sample_max = (sample['High'].rolling(n).max() / sample['Close'].shift(n) - 1) * 100
-	sample_min = (sample['Low'].rolling(n).min() / sample['Close'].shift(n) - 1) * 100
-	return pd.concat([abs(sample_max), abs(sample_min)], axis=1).max(axis=1) / np.sqrt(n)
+	if intraday:
+		sample_max = (sample['High'].rolling(n).max() / sample['Close'].shift(n) - 1) * 100
+		sample_min = (sample['Low'].rolling(n).min() / sample['Close'].shift(n) - 1) * 100
+	else:
+		sample_max = (sample['Close'].rolling(n).max() / sample['Close'].shift(n) - 1) * 100
+		sample_min = (sample['Close'].rolling(n).min() / sample['Close'].shift(n) - 1) * 100
+	delta_scale = 1 - haircut # Set a more conservative estimate of the range.
+	return pd.concat([abs(sample_max) * delta_scale, abs(sample_min) * delta_scale], axis=1).max(axis=1) 
+
+
+def past_abs_returns(sample, n=5):
+	return np.abs((1 - sample['Close'].shift(n) / sample['Close']) * 100)
 
 
 def varvolbreakeven(var, vol):
